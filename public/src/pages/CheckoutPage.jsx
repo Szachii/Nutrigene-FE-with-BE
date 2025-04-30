@@ -93,7 +93,15 @@ const CheckoutPage = () => {
     setApiError(null);
 
     try {
+      // Ensure customer name is properly formatted
+      const formattedCustomerName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+      
+      if (!formattedCustomerName) {
+        throw new Error('Customer name is required');
+      }
+
       const orderData = {
+        customerName: formattedCustomerName,
         items: cart.map((item) => ({
           product: item.product._id,
           name: item.product.name,
@@ -104,7 +112,6 @@ const CheckoutPage = () => {
         shippingAddress: {
           address: formData.address,
           city: formData.city,
-          state: formData.state,
           postalCode: formData.zipCode,
           country: formData.country
         },
@@ -112,8 +119,13 @@ const CheckoutPage = () => {
         itemsPrice: subtotal,
         taxPrice: tax,
         shippingPrice: shipping,
-        totalPrice: total
+        totalPrice: total,
+        status: 'pending'
       };
+
+      // Log the form data and order data for debugging
+      console.log('Form data:', formData);
+      console.log('Order data being sent:', orderData);
 
       const response = await fetch("http://localhost:5000/api/orders", {
         method: "POST",
@@ -124,21 +136,21 @@ const CheckoutPage = () => {
         body: JSON.stringify(orderData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to process order" }));
-        throw new Error(errorData.message || "Failed to create order");
-      }
+      const responseData = await response.json();
 
-      const order = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.message || "Failed to create order");
+      }
 
       clearCart();
       navigate("/order-confirmation", {
         state: {
-          orderId: order._id,
+          orderId: responseData._id,
           orderDate: new Date().toISOString(),
           orderTotal: total,
           shippingAddress: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
           paymentMethod: formData.paymentMethod === "credit" ? "Credit Card" : "PayPal",
+          customerName: formattedCustomerName
         },
       });
     } catch (err) {

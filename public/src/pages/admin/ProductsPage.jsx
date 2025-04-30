@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Package, Search, Plus, Filter, MoreHorizontal, Edit, Trash2, ArrowUpDown } from "lucide-react"
+import { Package, Search, Plus, Filter, MoreHorizontal, Edit, Trash2, ArrowUpDown, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/utils/currencyFormatter"
+import EditProductForm from "@/components/EditProductForm"
 
 const ProductsPage = () => {
   const [products, setProducts] = useState([])
@@ -16,15 +17,29 @@ const ProductsPage = () => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortConfig, setSortConfig] = useState({ key: "id", direction: "ascending" })
+  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false)
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/products');
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await fetch('http://localhost:5000/api/products', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
+
         const data = await response.json();
         setProducts(data);
         setFilteredProducts(data);
@@ -33,10 +48,10 @@ const ProductsPage = () => {
         console.error("Error fetching products:", error);
         setLoading(false);
       }
-    }
+    };
 
     fetchProducts();
-  }, [])
+  }, []);
 
   useEffect(() => {
     const filtered = products.filter(
@@ -100,6 +115,24 @@ const ProductsPage = () => {
         alert(error.message || 'Failed to delete product. Please try again.');
       }
     }
+  };
+
+  const handleEditClick = (product) => {
+    setSelectedProduct(product);
+    setIsEditFormOpen(true);
+  };
+
+  const handleSave = async () => {
+    // Refresh products after edit
+    const token = localStorage.getItem('token');
+    const response = await fetch('http://localhost:5000/api/products', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    setProducts(data);
   };
 
   if (loading) {
@@ -209,7 +242,7 @@ const ProductsPage = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditProduct(product._id)}>
+                        <DropdownMenuItem onClick={() => handleEditClick(product)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
@@ -235,6 +268,13 @@ const ProductsPage = () => {
           </TableBody>
         </Table>
       </div>
+
+      <EditProductForm
+        product={selectedProduct}
+        isOpen={isEditFormOpen}
+        onClose={() => setIsEditFormOpen(false)}
+        onSave={handleSave}
+      />
     </div>
   )
 }

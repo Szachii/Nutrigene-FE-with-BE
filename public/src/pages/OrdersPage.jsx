@@ -130,21 +130,14 @@ const OrdersPage = () => {
                     <p className="text-sm text-muted-foreground">
                       Ordered on {new Date(order.date).toLocaleDateString()}
                     </p>
-                    <p className="font-medium">${order.total.toFixed(2)}</p>
+                    <p className="font-medium">
+                      {order.total ? new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(order.total) : 'LKR 0.00'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Button asChild variant="outline" size="sm">
-                    <Link to={`/orders/${order.id}`}>
-                      View Details
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Link>
-                  </Button>
-                  {order.status === "Delivered" && (
-                    <Button variant="secondary" size="sm">
-                      Buy Again
-                    </Button>
-                  )}
+                  
+                  
                 </div>
               </div>
               <div className="border-t bg-muted/40 px-6 py-3">

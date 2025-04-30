@@ -1,0 +1,149 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+
+const EditProductForm = ({ product, isOpen, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    price: "",
+    category: "",
+    countInStock: "",
+    image: ""
+  });
+
+  useEffect(() => {
+    if (product && isOpen) {
+      setFormData({
+        name: product.name || "",
+        description: product.description || "",
+        price: product.price || "",
+        category: product.category || "",
+        countInStock: product.countInStock || "",
+        image: product.image || ""
+      });
+    }
+  }, [product, isOpen]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/products/${product._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update product');
+      }
+
+      onSave();
+      onClose();
+    } catch (error) {
+      console.error("Error updating product:", error);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit Product</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Product Name</Label>
+            <Input
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Enter product name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Enter product description"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="price">Price (LKR)</Label>
+            <Input
+              id="price"
+              name="price"
+              type="number"
+              value={formData.price}
+              onChange={handleChange}
+              placeholder="Enter price"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Input
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              placeholder="Enter category"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="countInStock">Stock Count</Label>
+            <Input
+              id="countInStock"
+              name="countInStock"
+              type="number"
+              value={formData.countInStock}
+              onChange={handleChange}
+              placeholder="Enter stock count"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="image">Image URL</Label>
+            <Input
+              id="image"
+              name="image"
+              value={formData.image}
+              onChange={handleChange}
+              placeholder="Enter image URL"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default EditProductForm; 
