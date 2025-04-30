@@ -9,9 +9,12 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [error, setError] = useState(null);
 
+  // API base URL
+  const API_BASE_URL = 'http://localhost:5000/api';
+
   // Helper function to get auth token (assumes token is stored in localStorage)
   const getAuthHeaders = () => {
-    const token = localStorage.getItem("token"); // Adjust based on your auth mechanism
+    const token = localStorage.getItem("token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
@@ -19,8 +22,7 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const response = await fetch("/api/cart", {
-          credentials: "include",
+        const response = await fetch(`${API_BASE_URL}/cart`, {
           headers: getAuthHeaders(),
         });
         if (!response.ok) throw new Error("Failed to fetch cart");
@@ -37,14 +39,13 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = async (product, quantity = 1) => {
     try {
-      const response = await fetch("/api/cart/add", {
+      const response = await fetch(`${API_BASE_URL}/cart/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeaders(),
         },
-        credentials: "include",
-        body: JSON.stringify({ productId: product._id, quantity }), // Use _id for MongoDB
+        body: JSON.stringify({ productId: product._id, quantity }),
       });
       if (!response.ok) throw new Error("Failed to add item to cart");
       const data = await response.json();
@@ -58,52 +59,64 @@ export const CartProvider = ({ children }) => {
 
   const removeFromCart = async (productId) => {
     try {
-      const response = await fetch("/api/cart/remove", {
+      const response = await fetch(`${API_BASE_URL}/cart/remove`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeaders(),
         },
-        credentials: "include",
         body: JSON.stringify({ productId }),
       });
-      if (!response.ok) throw new Error("Failed to remove item from cart");
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to remove item from cart");
+      }
+
       const data = await response.json();
       setCart(data.items || []);
       setError(null);
     } catch (err) {
-      setError("Could not remove item from cart. Please try again.");
-      throw err;
+      console.error("Error removing from cart:", err);
+      setError(err.message || "Could not remove item from cart. Please try again.");
     }
   };
 
   const updateQuantity = async (productId, quantity) => {
     try {
-      const response = await fetch("/api/cart/update", {
+      // Validate productId before making the request
+      if (!productId || typeof productId !== 'string') {
+        throw new Error('Invalid product ID');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/cart/update`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeaders(),
         },
-        credentials: "include",
         body: JSON.stringify({ productId, quantity }),
       });
-      if (!response.ok) throw new Error("Failed to update cart quantity");
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update cart quantity");
+      }
+
       const data = await response.json();
       setCart(data.items || []);
       setError(null);
     } catch (err) {
-      setError("Could not update cart quantity. Please try again.");
-      throw err;
+      console.error("Error updating cart quantity:", err);
+      setError(err.message || "Could not update cart quantity. Please try again.");
     }
   };
 
   const clearCart = async () => {
     try {
-      const response = await fetch("/api/cart/clear", {
+      const response = await fetch(`${API_BASE_URL}/cart/clear`, {
         method: "DELETE",
         headers: getAuthHeaders(),
-        credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to clear cart");
       setCart([]);
@@ -115,7 +128,16 @@ export const CartProvider = ({ children }) => {
   };
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, error }}>
+    <CartContext.Provider
+      value={{
+        cart,
+        error,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );

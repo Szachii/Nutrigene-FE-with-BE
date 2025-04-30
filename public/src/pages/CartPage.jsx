@@ -14,24 +14,39 @@ const CartPage = () => {
   const [discount, setDiscount] = useState(0);
   const [promoError, setPromoError] = useState("");
 
-  // Calculate cart totals
-  const subtotal = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+  // Calculate cart totals with null checks
+  const subtotal = cart.reduce((total, item) => {
+    if (!item?.product?.price || !item?.quantity) return total;
+    return total + (item.product.price * item.quantity);
+  }, 0);
   const shipping = subtotal > 0 ? 400 : 0;
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + shipping + tax - discount;
 
-  const handleQuantityChange = (productId, action) => {
-    const item = cart.find((item) => item.product._id === productId);
+  const handleQuantityChange = async (productId, action) => {
+    const item = cart.find((item) => item?.product?._id === productId);
     if (!item) return;
+    
+    let newQuantity = item.quantity;
     if (action === "increase") {
-      updateQuantity(productId, item.quantity + 1);
+      newQuantity += 1;
     } else if (action === "decrease" && item.quantity > 1) {
-      updateQuantity(productId, item.quantity - 1);
+      newQuantity -= 1;
+    }
+    
+    try {
+      await updateQuantity(productId, newQuantity);
+    } catch (error) {
+      console.error("Error updating quantity:", error);
     }
   };
 
-  const handleRemoveItem = (productId) => {
-    removeFromCart(productId);
+  const handleRemoveItem = async (productId) => {
+    try {
+      await removeFromCart(productId);
+    } catch (error) {
+      console.error("Error removing item:", error);
+    }
   };
 
   const handleApplyPromoCode = (e) => {
@@ -39,7 +54,7 @@ const CartPage = () => {
     setPromoError("Promo codes not supported yet.");
   };
 
-  if (cart.length === 0) {
+  if (!cart || cart.length === 0) {
     return (
       <div className="cart-empty flex flex-col items-center justify-center h-[60vh]">
         <ShoppingBag size={48} />
@@ -56,35 +71,43 @@ const CartPage = () => {
       <h2>Your Cart</h2>
       {error && <p className="text-red-500 mb-4">{error}</p>}
       <Separator />
-      {cart.map((item) => (
-        <div key={item.product._id} className="cart-item flex items-center gap-4 py-4">
-          <img src={item.product.image} alt={item.product.name} width={80} className="rounded" />
-          <div className="flex-1">
-            <h3>{item.product.name}</h3>
-            <p>₹{item.product.price.toFixed(2)} × {item.quantity}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <Button
-                size="sm"
-                onClick={() => handleQuantityChange(item.product._id, "decrease")}
-                disabled={item.quantity <= 1}
-              >
-                <Minus />
-              </Button>
-              <span>{item.quantity}</span>
-              <Button size="sm" onClick={() => handleQuantityChange(item.product._id, "increase")}>
-                <Plus />
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => handleRemoveItem(item.product._id)}
-              >
-                <Trash2 />
-              </Button>
+      {cart.map((item) => {
+        if (!item?.product) return null;
+        return (
+          <div key={`${item.product._id}-${item.quantity}`} className="cart-item flex items-center gap-4 py-4">
+            <img 
+              src={item.product.image || '/placeholder-image.jpg'} 
+              alt={item.product.name || 'Product'} 
+              width={80} 
+              className="rounded" 
+            />
+            <div className="flex-1">
+              <h3>{item.product.name || 'Unnamed Product'}</h3>
+              <p>{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(item.product.price)} × {item.quantity || 0}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleQuantityChange(item.product._id, "decrease")}
+                  disabled={item.quantity <= 1}
+                >
+                  <Minus />
+                </Button>
+                <span>{item.quantity || 0}</span>
+                <Button size="sm" onClick={() => handleQuantityChange(item.product._id, "increase")}>
+                  <Plus />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleRemoveItem(item.product._id)}
+                >
+                  <Trash2 />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       <Separator />
       <form onSubmit={handleApplyPromoCode} className="flex gap-2 my-4">
         <Input
@@ -96,13 +119,14 @@ const CartPage = () => {
       </form>
       {promoError && <p className="text-red-500 mb-4">{promoError}</p>}
       <div className="cart-summary">
-        <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
-        <p>Shipping: ₹{shipping.toFixed(2)}</p>
-        <p>Tax: ₹{tax.toFixed(2)}</p>
-        <h3>Total: ₹{total.toFixed(2)}</h3>
+        <p>Subtotal: {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(subtotal)}</p>
+        <p>Shipping: {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(shipping)}</p>
+        <p>Tax: {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(tax)}</p>
+        {discount > 0 && <p>Discount: -{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(discount)}</p>}
+        <p className="font-bold">Total: {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(total)}</p>
       </div>
-      <div className="flex gap-4 mt-4">
-        <Button onClick={clearCart} variant="destructive">
+      <div className="mt-8">
+        <Button onClick={clearCart} variant="outline" className="mr-4">
           Clear Cart
         </Button>
         <Link to="/checkout">

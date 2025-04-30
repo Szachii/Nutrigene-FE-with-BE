@@ -8,7 +8,50 @@ const Product = require('../models/Product');
 // @access  Private
 exports.createOrder = async (req, res) => {
   try {
-    const { shippingAddress, paymentMethod } = req.body;
+    const { 
+      shippingAddress, 
+      paymentMethod, 
+      customerName,
+      items,
+      itemsPrice,
+      taxPrice,
+      shippingPrice,
+      totalPrice,
+      status
+    } = req.body;
+
+    // Log the incoming request body for debugging
+    console.log('Received order data:', {
+      customerName,
+      shippingAddress,
+      paymentMethod,
+      itemsCount: items?.length,
+      itemsPrice,
+      taxPrice,
+      shippingPrice,
+      totalPrice,
+      status
+    });
+
+    // Validate required fields
+    if (!customerName || !shippingAddress || !paymentMethod || !items || items.length === 0) {
+      console.log('Validation failed:', {
+        customerName: !customerName,
+        shippingAddress: !shippingAddress,
+        paymentMethod: !paymentMethod,
+        items: !items || items.length === 0
+      });
+      
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        details: {
+          customerName: !customerName,
+          shippingAddress: !shippingAddress,
+          paymentMethod: !paymentMethod,
+          items: !items || items.length === 0
+        }
+      });
+    }
 
     // Get user's cart
     const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
@@ -16,31 +59,26 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ message: 'No items in cart' });
     }
 
-    // Create order items from cart
-    const orderItems = cart.items.map(item => ({
-      product: item.product._id,
-      name: item.product.name,
-      quantity: item.quantity,
-      price: item.product.price,
-      image: item.product.image
-    }));
-
-    // Calculate prices
-    const itemsPrice = orderItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    const taxPrice = itemsPrice * 0.1; // 10% tax
-    const shippingPrice = itemsPrice > 1000 ? 0 : 50; // Free shipping for orders above 1000
-    const totalPrice = itemsPrice + taxPrice + shippingPrice;
-
-    // Create order
+    // Create order with explicit customerName
     const order = new Order({
       user: req.user._id,
-      items: orderItems,
+      customerName: customerName.trim(), // Ensure customerName is trimmed
+      items,
       shippingAddress,
       paymentMethod,
       itemsPrice,
       taxPrice,
       shippingPrice,
-      totalPrice
+      totalPrice,
+      status: status || 'pending'
+    });
+
+    // Log the order object before saving
+    console.log('Creating order with data:', {
+      customerName: order.customerName,
+      itemsCount: order.items.length,
+      shippingAddress: order.shippingAddress,
+      paymentMethod: order.paymentMethod
     });
 
     const createdOrder = await order.save();
@@ -52,7 +90,19 @@ exports.createOrder = async (req, res) => {
     res.status(201).json(createdOrder);
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ message: 'Error creating order' });
+    // Log the full error details in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        errors: error.errors
+      });
+    }
+    res.status(500).json({ 
+      message: 'Error creating order',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
