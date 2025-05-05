@@ -32,6 +32,7 @@ import AdminOrderDetailPage from "./pages/admin/OrderDetailPage"
 import CustomersPage from "./pages/admin/CustomersPage"
 import AnalyticsPage from "./pages/admin/AnalyticsPage"
 import SettingsPage from "./pages/admin/SettingsPage"
+import AdminList from "./pages/admin/AdminList"
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -264,6 +265,14 @@ function App() {
               element={
                 <AdminLayout>
                   <SettingsPage />
+                </AdminLayout>
+              }
+            />
+            <Route
+              path="/admin/admins"
+              element={
+                <AdminLayout>
+                  <AdminList />
                 </AdminLayout>
               }
             />

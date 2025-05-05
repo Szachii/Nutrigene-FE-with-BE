@@ -44,13 +44,35 @@ export const AuthProvider = ({ children }) => {
     const data = await response.json();
     if (response.ok) {
       localStorage.setItem('token', data.token);
-      setUser({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        isAdmin: data.isAdmin,
+      
+      const profileResponse = await fetch('http://localhost:5000/api/users/profile', {
+        headers: {
+          Authorization: `Bearer ${data.token}`,
+        },
       });
-      return data;
+      
+      if (profileResponse.ok) {
+        const userData = await profileResponse.json();
+        console.log("Profile Data:", userData);
+        
+        setUser({
+          _id: userData._id,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          isAdmin: Boolean(userData.isAdmin),
+          isSuperAdmin: Boolean(userData.isSuperAdmin),
+        });
+        
+        return {
+          ...userData,
+          token: data.token,
+          isAdmin: Boolean(userData.isAdmin),
+          isSuperAdmin: Boolean(userData.isSuperAdmin)
+        };
+      } else {
+        throw new Error('Failed to fetch user profile');
+      }
     } else {
       throw new Error(data.message || 'Invalid email or password');
     }

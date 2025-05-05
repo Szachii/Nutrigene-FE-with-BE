@@ -68,7 +68,9 @@ const OrderConfirmationPage = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Order Total:</span>
-              <span className="font-medium">${orderTotal.toFixed(2)}</span>
+              <span className="font-medium">
+                {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(orderTotal)}
+              </span>
             </div>
           </div>
         </div>

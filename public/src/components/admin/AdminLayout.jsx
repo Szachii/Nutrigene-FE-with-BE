@@ -1,9 +1,47 @@
-import { Link, useLocation } from "react-router-dom"
-import { LayoutDashboard, Package, ShoppingCart, Users, BarChart2, Settings, Tag } from "lucide-react"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { LayoutDashboard, Package, ShoppingCart, Users, BarChart2, Settings, Tag, LogOut, User, Home } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/AuthContext"
 
 const AdminLayout = ({ children }) => {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
   const location = useLocation()
   const currentPath = location.pathname
+  const [userName, setUserName] = useState("")
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await fetch('http://localhost:5000/api/users/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUserName(data.firstName);
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const menuItems = [
     {
@@ -58,7 +96,7 @@ const AdminLayout = ({ children }) => {
           <Link to="/" className="flex items-center gap-2">
             <span className="text-xl font-bold">Nutrigene</span>
             <span className="rounded-md bg-primary px-1.5 py-0.5 text-xs font-medium text-primary-foreground">
-              Admin
+              {userName}
             </span>
           </Link>
         </div>
@@ -84,12 +122,22 @@ const AdminLayout = ({ children }) => {
       <div className="flex flex-1 flex-col">
         <header className="sticky top-0 z-10 flex h-16 items-center border-b bg-white px-6 dark:border-gray-800 dark:bg-gray-950">
           <div className="ml-auto flex items-center gap-4">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/">
+                <Home className="mr-2 h-4 w-4" />
+                Home
+              </Link>
+            </Button>
             <div className="relative">
               <div className="flex items-center gap-2 rounded-full bg-gray-100 p-1 px-2 dark:bg-gray-800">
                 <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700"></div>
-                <span className="text-sm font-medium">Admin</span>
+                <span className="text-sm font-medium">{userName}</span>
               </div>
             </div>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </header>
         <main className="flex-1 p-6">{children}</main>

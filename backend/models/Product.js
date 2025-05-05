@@ -1,7 +1,7 @@
-
 const mongoose = require('mongoose');
 const Category = require('./Category');
 
+// Define the product schema
 const productSchema = new mongoose.Schema({
   _id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -104,6 +104,10 @@ const productSchema = new mongoose.Schema({
     min: [0, 'Reviews cannot be negative'],
     default: 0,
   },
+  expiryDate: {
+    type: Date,
+    required: [true, 'Expiry date is required'],
+  },
 }, {
   timestamps: true,
   suppressReservedKeysWarning: true,
@@ -116,4 +120,5 @@ productSchema.pre('save', function (next) {
   next();
 });
 
-module.exports = mongoose.model('Product', productSchema);
+// Export the model as a singleton to prevent redefinition
+module.exports = mongoose.models.Product || mongoose.model('Product', productSchema);

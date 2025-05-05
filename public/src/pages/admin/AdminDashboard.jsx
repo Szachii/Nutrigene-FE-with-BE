@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { BarChart, DollarSign, Package, ShoppingCart, TrendingUp, TrendingDown, Users, ArrowRight, User } from "lucide-react"
+import { BarChart, DollarSign, Package, ShoppingCart, TrendingUp, TrendingDown, Users, ArrowRight, User, Shield, AlertCircle } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getMockOrders, getMockProducts } from "@/data/mockData"
 import { formatCurrency } from "@/utils/currencyFormatter"
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const AdminDashboard = () => {
   const [orders, setOrders] = useState([])
@@ -15,6 +17,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true)
   const [timeframe, setTimeframe] = useState("today")
   const [userName, setUserName] = useState("")
+  const [expiringProducts, setExpiringProducts] = useState([])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,6 +40,35 @@ const AdminDashboard = () => {
           setUserName(profileData.name || "User");
         }
 
+        // Fetch all products to check expiry dates
+        const productsResponse = await fetch('http://localhost:5000/api/products', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!productsResponse.ok) {
+          throw new Error('Failed to fetch products');
+        }
+
+        const productsData = await productsResponse.json();
+        setProducts(productsData);
+
+        // Check for products expiring within 7 days
+        const currentDate = new Date();
+        const oneWeekFromNow = new Date();
+        oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+
+        const expiringProducts = productsData.filter(product => {
+          const expiryDate = new Date(product.expiryDate);
+          const daysUntilExpiry = Math.ceil((expiryDate - currentDate) / (1000 * 60 * 60 * 24));
+          return daysUntilExpiry <= 7 && daysUntilExpiry >= 0;
+        });
+
+        console.log('Products expiring within 7 days:', expiringProducts);
+        setExpiringProducts(expiringProducts);
+
         // Fetch real orders from backend
         const ordersResponse = await fetch('http://localhost:5000/api/orders', {
           headers: {
@@ -51,10 +83,6 @@ const AdminDashboard = () => {
 
         const ordersData = await ordersResponse.json();
         setOrders(ordersData);
-
-        // Fetch products
-        const productsData = await getMockProducts();
-        setProducts(productsData);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -64,6 +92,11 @@ const AdminDashboard = () => {
 
     fetchData();
   }, []);
+
+  // Add debug logging for expiringProducts state
+  useEffect(() => {
+    console.log('Current expiringProducts state:', expiringProducts);
+  }, [expiringProducts]);
 
   // Calculate total orders
   const totalOrders = orders.length;
@@ -229,6 +262,32 @@ const AdminDashboard = () => {
     );
   };
 
+  // Add this function to process sales data for the chart
+  const processSalesData = (orders) => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().split('T')[0];
+    }).reverse();
+
+    const salesData = last7Days.map(date => {
+      const dayOrders = orders.filter(order => 
+        new Date(order.createdAt).toISOString().split('T')[0] === date
+      );
+      
+      const totalSales = dayOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+      const orderCount = dayOrders.length;
+
+      return {
+        date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+        sales: totalSales,
+        orders: orderCount
+      };
+    });
+
+    return salesData;
+  };
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -239,6 +298,33 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {expiringProducts && expiringProducts.length > 0 && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Warning: Products Expiring Soon</AlertTitle>
+          <AlertDescription>
+            The following products will expire within a week:
+            <ul className="mt-2 list-disc pl-4">
+              {expiringProducts.map((product) => {
+                const expiryDate = new Date(product.expiryDate);
+                const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+                return (
+                  <li key={product._id || product.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span>{product.name}</span>
+                      
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      Expires in {daysUntilExpiry} days ({expiryDate.toLocaleDateString()})
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -249,6 +335,12 @@ const AdminDashboard = () => {
             <User className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">{userName}</span>
           </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/admins">
+              <Shield className="mr-2 h-4 w-4" />
+              Manage Admins
+            </Link>
+          </Button>
           <Tabs value={timeframe} onValueChange={setTimeframe} className="w-[400px]">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="today">Today</TabsTrigger>
@@ -339,12 +431,12 @@ const AdminDashboard = () => {
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
-            <CardDescription>Latest  {recentOrders.length} orders from your store</CardDescription>
+            <CardDescription>Latest {recentOrders.length} orders from your store</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {recentOrders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between">
+                <div key={order.id} className="flex items-center justify-between rounded-lg border p-4">
                   <div className="flex items-center gap-4">
                     <div className="rounded-full bg-primary/10 p-2">
                       <ShoppingCart className="h-4 w-4 text-primary" />
@@ -352,26 +444,27 @@ const AdminDashboard = () => {
                     <div>
                       <p className="text-sm font-medium">{order.customerName}</p>
                       <p className="text-xs text-muted-foreground">
-                        Order #{order.id} • {order.items.length} items
+                        Order #{order.id}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(order.createdAt).toLocaleDateString()} • {order.items.length} items
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm font-medium">
-                        {order.total ? new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(order.total) : 'LKR 0.00'}
-                      </p>
-                      <div
-                        className={`rounded-full px-2 py-1 text-xs ${
-                          order.status === "delivered"
-                            ? "bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400"
-                            : order.status === "processing"
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-800/20 dark:text-amber-400"
-                              : "bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400"
-                        }`}
-                      >
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                      </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <p className="text-lg font-semibold">
+                      {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(order.totalPrice || 0)}
+                    </p>
+                    <div
+                      className={`rounded-full px-2 py-1 text-xs ${
+                        order.status === "delivered"
+                          ? "bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400"
+                          : order.status === "processing"
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-800/20 dark:text-amber-400"
+                            : "bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400"
+                      }`}
+                    >
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </div>
                   </div>
                 </div>
@@ -412,12 +505,55 @@ const AdminDashboard = () => {
       <Card>
         <CardHeader>
           <CardTitle>Sales Overview</CardTitle>
-          <CardDescription>Sales performance over time</CardDescription>
+          <CardDescription>Sales performance over the last 7 days</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[300px] items-center justify-center">
-            <BarChart className="h-16 w-16 text-muted-foreground" />
-            <p className="ml-4 text-muted-foreground">Chart visualization would go here</p>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsBarChart
+                data={processSalesData(orders)}
+                margin={{
+                  top: 20,
+                  right: 30,
+                  left: 20,
+                  bottom: 5,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis 
+                  yAxisId="left"
+                  tickFormatter={(value) => `LKR ${value.toLocaleString()}`}
+                />
+                <YAxis 
+                  yAxisId="right" 
+                  orientation="right"
+                  tickFormatter={(value) => `${value} orders`}
+                />
+                <Tooltip 
+                  formatter={(value, name) => [
+                    name === 'sales' 
+                      ? `LKR ${value.toLocaleString()}` 
+                      : `${value} orders`,
+                    name === 'sales' ? 'Sales' : 'Orders'
+                  ]}
+                />
+                <Bar 
+                  yAxisId="left"
+                  dataKey="sales" 
+                  fill="#2563eb" 
+                  name="Sales"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar 
+                  yAxisId="right"
+                  dataKey="orders" 
+                  fill="#16a34a" 
+                  name="Orders"
+                  radius={[4, 4, 0, 0]}
+                />
+              </RechartsBarChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>

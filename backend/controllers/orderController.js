@@ -16,8 +16,7 @@ exports.createOrder = async (req, res) => {
       itemsPrice,
       taxPrice,
       shippingPrice,
-      totalPrice,
-      status
+      totalPrice
     } = req.body;
 
     // Log the incoming request body for debugging
@@ -29,8 +28,7 @@ exports.createOrder = async (req, res) => {
       itemsPrice,
       taxPrice,
       shippingPrice,
-      totalPrice,
-      status
+      totalPrice
     });
 
     // Validate required fields
@@ -59,7 +57,7 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ message: 'No items in cart' });
     }
 
-    // Create order with explicit customerName
+    // Create order with explicit customerName and pending status
     const order = new Order({
       user: req.user._id,
       customerName: customerName.trim(), // Ensure customerName is trimmed
@@ -70,7 +68,7 @@ exports.createOrder = async (req, res) => {
       taxPrice,
       shippingPrice,
       totalPrice,
-      status: status || 'pending'
+      status: 'pending' // Always set to pending for new orders
     });
 
     // Log the order object before saving
@@ -194,5 +192,44 @@ exports.getOrders = async (req, res) => {
   } catch (error) {
     console.error('Get all orders error:', error);
     res.status(500).json({ message: 'Error fetching orders' });
+  }
+};
+
+// @desc    Update order status
+// @route   PUT /api/orders/:id/status
+// @access  Private/Admin
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const order = await Order.findById(req.params.id);
+    
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Validate status
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    // Don't allow changing from pending to pending
+    if (order.status === 'pending' && status === 'pending') {
+      return res.status(400).json({ message: 'Order is already in pending status' });
+    }
+
+    order.status = status;
+    
+    // Update isDelivered flag if status is delivered
+    if (status === 'delivered') {
+      order.isDelivered = true;
+      order.deliveredAt = Date.now();
+    }
+
+    const updatedOrder = await order.save();
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error('Update order status error:', error);
+    res.status(500).json({ message: 'Error updating order status' });
   }
 }; 
