@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
-import { Star, ChevronRight, Minus, Plus, Heart, Share2, Trash2 } from "lucide-react"
+import { Star, ChevronRight, Minus, Plus, Heart, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
@@ -14,8 +14,6 @@ import { getMockProductById, getRelatedProducts } from "@/data/mockData"
 import ReviewForm from "@/components/ReviewForm"
 import ReviewList from "@/components/ReviewList"
 import { useAuth } from "@/contexts/AuthContext"
-import { Textarea } from "@/components/ui/textarea"
-import { toast } from "sonner"
 
 const ProductDetailPage = () => {
   const { id } = useParams()
@@ -26,11 +24,6 @@ const ProductDetailPage = () => {
   const [activeImage, setActiveImage] = useState(0)
   const { addToCart } = useCart()
   const { user } = useAuth()
-  const [rating, setRating] = useState(0)
-  const [comment, setComment] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [reviews, setReviews] = useState([])
-  const [isLoadingReviews, setIsLoadingReviews] = useState(true)
 
   // Mock multiple images for the product
   const productImages = [
@@ -77,131 +70,9 @@ const ProductDetailPage = () => {
     }
   }
 
-  const fetchReviews = async () => {
-    if (!product?._id) {
-      console.log('Waiting for product data to load...');
-      return;
-    }
-
-    try {
-      setIsLoadingReviews(true);
-      const response = await fetch(`http://localhost:5000/api/products/${product._id}/reviews`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch reviews');
-      }
-      const data = await response.json();
-      setReviews(data);
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-      toast.error('Failed to fetch reviews');
-    } finally {
-      setIsLoadingReviews(false);
-    }
-  };
-
-  const handleReviewSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!product?._id) {
-      toast.error("Product data not loaded");
-      return;
-    }
-
-    if (!user) {
-      toast.error("Please login to add a review");
-      return;
-    }
-
-    if (rating === 0) {
-      toast.error("Please select a rating");
-      return;
-    }
-
-    if (!comment.trim()) {
-      toast.error("Please add a comment");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`http://localhost:5000/api/products/${product._id}/reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          rating,
-          comment: comment.trim()
-        })
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to add review');
-      }
-
-      toast.success("Review added successfully");
-      setRating(0);
-      setComment("");
-      await fetchReviews(); // Refresh reviews
-      await fetchProduct(); // Refresh product to update rating
-    } catch (error) {
-      console.error('Error adding review:', error);
-      toast.error(error.message || 'Failed to add review');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteReview = async (reviewId) => {
-    if (!product?._id) {
-      toast.error("Product data not loaded");
-      return;
-    }
-
-    if (!window.confirm('Are you sure you want to delete this review?')) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        `http://localhost:5000/api/products/${product._id}/reviews/${reviewId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to delete review');
-      }
-
-      toast.success("Review deleted successfully");
-      await fetchReviews(); // Refresh reviews
-      await fetchProduct(); // Refresh product to update rating
-    } catch (error) {
-      console.error('Error deleting review:', error);
-      toast.error(error.message || 'Failed to delete review');
-    }
-  };
-
   useEffect(() => {
-    const loadData = async () => {
-      await fetchProduct();
-      // Only fetch reviews after product data is loaded
-      if (product?._id) {
-        await fetchReviews();
-      }
-    };
-    loadData();
-  }, [id]);
+    fetchProduct()
+  }, [id])
 
   const handleQuantityChange = (action) => {
     if (action === "increase") {
@@ -218,6 +89,16 @@ const ProductDetailPage = () => {
         addToCart(product)
       }
     }
+  }
+
+  const handleReviewAdded = () => {
+    // Refresh product data to update rating
+    fetchProduct()
+  }
+
+  const handleReviewDeleted = () => {
+    // Refresh product data to update rating
+    fetchProduct()
   }
 
   if (loading) {
@@ -456,43 +337,10 @@ const ProductDetailPage = () => {
           <TabsContent value="reviews" className="mt-6">
             <div className="space-y-8">
               {user ? (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Write a Review</h3>
-                  <form onSubmit={handleReviewSubmit} className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setRating(star)}
-                          className="focus:outline-none"
-                        >
-                          <Star
-                            className={`h-6 w-6 ${
-                              star <= rating
-                                ? "fill-yellow-400 text-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                    <Textarea
-                      placeholder="Write your review..."
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      className="min-h-[100px]"
-                      disabled={isSubmitting}
-                    />
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full"
-                    >
-                      {isSubmitting ? "Submitting..." : "Submit Review"}
-                    </Button>
-                  </form>
-                </div>
+                <ReviewForm 
+                  productId={product.id} 
+                  onReviewAdded={handleReviewAdded}
+                />
               ) : (
                 <div className="rounded-lg border p-4 text-center">
                   <p className="mb-2">Please login to write a review</p>
@@ -501,57 +349,10 @@ const ProductDetailPage = () => {
                   </Button>
                 </div>
               )}
-
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold">Customer Reviews</h3>
-                {isLoadingReviews ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-primary"></div>
-                  </div>
-                ) : reviews.length === 0 ? (
-                  <div className="rounded-lg border p-8 text-center text-gray-500">
-                    No reviews yet. Be the first to review this product!
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {reviews.map((review) => (
-                      <div key={review._id} className="rounded-lg border p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{review.name}</span>
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, index) => (
-                                <Star
-                                  key={index}
-                                  className={`h-4 w-4 ${
-                                    index < review.rating
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          {(user?._id === review.user || user?.isAdmin) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteReview(review._id)}
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <p className="text-gray-600">{review.comment}</p>
-                        <p className="text-sm text-gray-400">
-                          {new Date(review.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ReviewList 
+                productId={product.id} 
+                onReviewDeleted={handleReviewDeleted}
+              />
             </div>
           </TabsContent>
         </Tabs>
