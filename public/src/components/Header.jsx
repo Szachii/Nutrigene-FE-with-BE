@@ -108,33 +108,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
 
         {/* Right Side Actions */}
         <div className="flex items-center space-x-2">
-          {/* Search */}
-          {isSearchOpen ? (
-            <div className="relative mr-2 flex items-center">
-              <Input
-                type="search"
-                placeholder="Search..."
-                className="w-[200px]"
-                autoFocus
-                onBlur={() => setIsSearchOpen(false)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") setIsSearchOpen(false)
-                  if (e.key === "Enter") {
-                    // Handle search
-                    setIsSearchOpen(false)
-                  }
-                }}
-              />
-              <Button variant="ghost" size="icon" className="absolute right-0" onClick={() => setIsSearchOpen(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)}>
-              <Search className="h-5 w-5" />
-              <span className="sr-only">Search</span>
-            </Button>
-          )}
+          
 
           {/* Theme Toggle */}
           <Button variant="ghost" size="icon" onClick={toggleTheme}>

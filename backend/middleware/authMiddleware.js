@@ -1,8 +1,9 @@
 // middleware/authMiddleware.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const asyncHandler = require('express-async-handler');
 
-exports.protect = async (req, res, next) => {
+const protect = asyncHandler(async (req, res, next) => {
   let token;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -18,12 +19,14 @@ exports.protect = async (req, res, next) => {
       console.error('Auth middleware error:', error);
       return res.status(401).json({ message: 'Not authorized, token failed' });
     }
-  } else {
+  }
+
+  if (!token) {
     return res.status(401).json({ message: 'Not authorized, no token' });
   }
-};
+});
 
-exports.admin = (req, res, next) => {
+const admin = (req, res, next) => {
   if (req.user && req.user.isAdmin) {
     next();
   } else {
@@ -31,3 +34,17 @@ exports.admin = (req, res, next) => {
     return res.status(403).json({ message: 'Access denied, only admins can perform this action' });
   }
 };
+
+// @desc    Check if user is super admin
+// @route   Any admin management route
+// @access  Private
+const superAdmin = (req, res, next) => {
+  if (req.user && req.user.isSuperAdmin) {
+    next();
+  } else {
+    res.status(401);
+    throw new Error('Not authorized as a super admin');
+  }
+};
+
+module.exports = { protect, admin };

@@ -61,8 +61,23 @@ const LoginPage = () => {
       setIsLoading(true)
 
       try {
-        await login(formData.email, formData.password)
-        navigate("/")
+        const userData = await login(formData.email, formData.password)
+        console.log("=== Login Response Debug ===")
+        console.log("Raw Response Data:", userData)
+        console.log("isAdmin value:", userData.isAdmin)
+        console.log("isAdmin type:", typeof userData.isAdmin)
+        console.log("isSuperAdmin value:", userData.isSuperAdmin)
+        console.log("User ID:", userData._id)
+        console.log("Full User Object:", userData)
+        console.log("=====================")
+        
+        if (Boolean(userData.isAdmin)) {
+          console.log("Navigating to admin dashboard")
+          navigate("/admin")
+        } else {
+          console.log("Navigating to home page")
+          navigate("/")
+        }
       } catch (error) {
         setErrors({
           form: error.message || "Invalid email or password. Please try again.",

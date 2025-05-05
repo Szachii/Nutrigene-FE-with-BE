@@ -25,7 +25,7 @@ const ShopPage = () => {
   const { addToCart } = useCart();
 
   // Filter states
-  const [priceRange, setPriceRange] = useState([0, 1000]); // Adjusted for INR
+  const [priceRange, setPriceRange] = useState([0, 1000]); // Adjusted for LKR
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedDemand, setSelectedDemand] = useState([]);
 
@@ -191,19 +191,19 @@ const ShopPage = () => {
             </SheetHeader>
             <div className="grid gap-6 py-4">
               <div>
-                <h3 className="mb-4 text-lg font-medium">Price Range (₹)</h3>
+                <h3 className="mb-4 text-lg font-medium">Price Range (LKR)</h3>
                 <div className="px-2">
                   <Slider
                     defaultValue={priceRange}
                     min={0}
-                    max={1000} // Adjusted for INR
-                    step={10}
+                    max={10000} // Adjusted for LKR
+                    step={100}
                     value={priceRange}
                     onValueChange={setPriceRange}
                   />
                   <div className="mt-2 flex items-center justify-between text-sm">
-                    <span>₹{priceRange[0]}</span>
-                    <span>₹{priceRange[1]}</span>
+                    <span>{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(priceRange[0])}</span>
+                    <span>{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(priceRange[1])}</span>
                   </div>
                 </div>
               </div>
@@ -338,11 +338,11 @@ const ShopPage = () => {
                   <div className="flex items-center justify-between">
                     {product.discount > 0 ? (
                       <div className="flex items-center gap-2">
-                        <span className="font-bold">₹{(product.price * (1 - product.discount / 100)).toFixed(2)}</span>
-                        <span className="text-sm text-muted-foreground line-through">₹{product.price.toFixed(2)}</span>
+                        <span className="font-bold">{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(product.price * (1 - product.discount / 100))}</span>
+                        <span className="text-sm text-muted-foreground line-through">{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(product.price)}</span>
                       </div>
                     ) : (
-                      <span className="font-bold">₹{product.price.toFixed(2)}</span>
+                      <span className="font-bold">{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(product.price)}</span>
                     )}
                   </div>
                 </div>

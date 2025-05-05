@@ -37,6 +37,7 @@ const ProductForm = () => {
     ingredients: "",
     discount: "0",
     season: "",
+    expiryDate: "",
   })
 
   const [loading, setLoading] = useState(true)
@@ -126,6 +127,7 @@ const ProductForm = () => {
           ingredients: "",
           discount: "0",
           season: "none",
+          expiryDate: "",
         })
         setLoading(false)
       }
@@ -175,6 +177,16 @@ const ProductForm = () => {
       newErrors.category = "Category is required"
     }
 
+    if (!formData.expiryDate) {
+      newErrors.expiryDate = "Expiry date is required"
+    } else {
+      const selectedDate = new Date(formData.expiryDate)
+      const today = new Date()
+      if (selectedDate < today) {
+        newErrors.expiryDate = "Expiry date must be in the future"
+      }
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -190,6 +202,7 @@ const ProductForm = () => {
           throw new Error('No authentication token found')
         }
 
+        // Ensure expiry date is included and properly formatted
         const productData = {
           ...formData,
           price: Number.parseFloat(formData.price),
@@ -198,7 +211,11 @@ const ProductForm = () => {
             .split(",")
             .map((item) => item.trim())
             .filter((item) => item),
+          expiryDate: formData.expiryDate ? new Date(formData.expiryDate).toISOString() : null,
+          isNewProduct: formData.isNewProduct || false
         }
+
+        console.log('Submitting product data:', productData); // Debug log
 
         const url = isEditing 
           ? `${API_URL}/api/products/${id}`
@@ -324,7 +341,7 @@ const ProductForm = () => {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="price">Price ($)</Label>
+                <Label htmlFor="price">Price (LKR)</Label>
                 <Input
                   id="price"
                   name="price"
@@ -351,6 +368,20 @@ const ProductForm = () => {
                   onChange={handleInputChange}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expiryDate">Expiry Date</Label>
+              <Input
+                id="expiryDate"
+                name="expiryDate"
+                type="date"
+                value={formData.expiryDate}
+                onChange={handleInputChange}
+                min={new Date().toISOString().split('T')[0]}
+                className={errors.expiryDate ? "border-destructive" : ""}
+              />
+              {errors.expiryDate && <p className="text-sm text-destructive">{errors.expiryDate}</p>}
             </div>
 
             <div className="space-y-2">
@@ -544,20 +575,25 @@ const ProductForm = () => {
                   {Number.parseFloat(formData.discount) > 0 ? (
                     <>
                       <span className="text-xl font-bold">
-                        $
-                        {(Number.parseFloat(formData.price) * (1 - Number.parseFloat(formData.discount) / 100)).toFixed(
-                          2,
+                        {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(
+                          Number.parseFloat(formData.price) * (1 - Number.parseFloat(formData.discount) / 100)
                         )}
                       </span>
                       <span className="text-sm text-muted-foreground line-through">
-                        ${Number.parseFloat(formData.price).toFixed(2)}
+                        {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(
+                          Number.parseFloat(formData.price)
+                        )}
                       </span>
                       <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-800/20 dark:text-red-400">
                         {formData.discount}% OFF
                       </span>
                     </>
                   ) : (
-                    <span className="text-xl font-bold">${Number.parseFloat(formData.price || 0).toFixed(2)}</span>
+                    <span className="text-xl font-bold">
+                      {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(
+                        Number.parseFloat(formData.price || 0)
+                      )}
+                    </span>
                   )}
                 </div>
               </div>

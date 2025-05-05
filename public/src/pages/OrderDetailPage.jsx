@@ -140,11 +140,11 @@ const OrderDetailPage = () => {
                       </h3>
                       <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                         <span>Qty: {item.quantity}</span>
-                        <span>Price: ${item.price.toFixed(2)}</span>
+                        <span>Price: {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(item.price)}</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="font-medium">{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(item.price * item.quantity)}</span>
                     </div>
                   </div>
                   {index < order.items.length - 1 && <Separator className="mt-6" />}

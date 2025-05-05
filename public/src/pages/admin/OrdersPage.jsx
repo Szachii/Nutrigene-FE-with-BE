@@ -6,11 +6,16 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { toast } from "react-hot-toast"
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -32,7 +37,12 @@ const OrdersPage = () => {
         }
 
         const data = await response.json();
-        setOrders(data);
+        // Set all orders as paid by default
+        const ordersWithPaidStatus = data.map(order => ({
+          ...order,
+          isPaid: true
+        }));
+        setOrders(ordersWithPaidStatus);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching orders:", error);
@@ -56,8 +66,10 @@ const OrdersPage = () => {
         return <Badge className="bg-amber-500">Processing</Badge>;
       case "cancelled":
         return <Badge className="bg-red-500">Cancelled</Badge>;
+      case "pending":
+        return <Badge className="bg-blue-500">Pending</Badge>;
       default:
-        return <Badge className="bg-blue-500">{status}</Badge>;
+        return <Badge className="bg-gray-500">{status}</Badge>;
     }
   };
 
@@ -67,6 +79,99 @@ const OrdersPage = () => {
     ) : (
       <XCircle className="h-4 w-4 text-red-500" />
     );
+  };
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to update order status');
+        return;
+      }
+
+      // Don't allow changing to the same status
+      const currentOrder = orders.find(order => order._id === orderId);
+      if (currentOrder.status === newStatus) {
+        toast.error('Order is already in this status');
+        return;
+      }
+
+      // Show loading state
+      toast.loading('Updating order status...');
+
+      console.log('Updating order status:', { orderId, newStatus }); // Debug log
+
+      // First update the status
+      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      const data = await response.json();
+      console.log('Server response:', data); // Debug log
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update order status');
+      }
+
+      // Close dialog and show success message
+      setIsStatusDialogOpen(false);
+      toast.dismiss(); // Dismiss loading toast
+      toast.success(`Order status updated to ${newStatus}`);
+
+      // Update the order in the local state
+      setOrders(orders.map(order => 
+        order._id === orderId ? { ...order, status: newStatus } : order
+      ));
+
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.dismiss(); // Dismiss loading toast
+      toast.error(error.message || 'Failed to update order status');
+    }
+  };
+
+  const handlePaymentStatusToggle = async (orderId, currentStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to update payment status');
+        return;
+      }
+
+      const newStatus = !currentStatus;
+      toast.loading('Updating payment status...');
+
+      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/payment`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isPaid: newStatus })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update payment status');
+      }
+
+      // Update local state
+      setOrders(orders.map(order => 
+        order._id === orderId ? { ...order, isPaid: newStatus } : order
+      ));
+
+      toast.dismiss();
+      toast.success(`Payment status updated to ${newStatus ? 'Paid' : 'Unpaid'}`);
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      toast.dismiss();
+      toast.error(error.message || 'Failed to update payment status');
+    }
   };
 
   if (loading) {
@@ -152,14 +257,77 @@ const OrdersPage = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(order.status)}
+                      <Dialog open={isStatusDialogOpen && selectedOrder?._id === order._id} onOpenChange={(open) => {
+                        setIsStatusDialogOpen(open);
+                        if (!open) setSelectedOrder(null);
+                      }}>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setIsStatusDialogOpen(true);
+                            }}
+                            className="w-[130px] justify-start"
+                          >
+                            {getStatusBadge(order.status)}
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Change Order Status</DialogTitle>
+                            <DialogDescription>
+                              Select the new status for order #{order._id.substring(0, 8)}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                variant={order.status === 'pending' ? 'default' : 'outline'}
+                                onClick={() => handleStatusChange(order._id, 'pending')}
+                                disabled={order.status === 'pending'}
+                              >
+                                Pending
+                              </Button>
+                              <Button
+                                variant={order.status === 'processing' ? 'default' : 'outline'}
+                                onClick={() => handleStatusChange(order._id, 'processing')}
+                                disabled={order.status === 'processing'}
+                              >
+                                Processing
+                              </Button>
+                              <Button
+                                variant={order.status === 'delivered' ? 'default' : 'outline'}
+                                onClick={() => handleStatusChange(order._id, 'delivered')}
+                                disabled={order.status === 'delivered'}
+                              >
+                                Delivered
+                              </Button>
+                              <Button
+                                variant={order.status === 'cancelled' ? 'default' : 'outline'}
+                                onClick={() => handleStatusChange(order._id, 'cancelled')}
+                                disabled={order.status === 'cancelled'}
+                              >
+                                Cancelled
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {getPaymentStatusIcon(order.isPaid)}
-                        <span className="text-sm">
-                          {order.isPaid ? "Paid" : "Unpaid"}
-                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePaymentStatusToggle(order._id, order.isPaid)}
+                          className="flex items-center gap-2"
+                        >
+                          {getPaymentStatusIcon(order.isPaid)}
+                          <span className="text-sm">
+                            {order.isPaid ? "Paid" : "Unpaid"}
+                          </span>
+                        </Button>
                       </div>
                     </TableCell>
                     <TableCell>

@@ -64,14 +64,22 @@ const SeasonalOffers = ({ seasonalProducts }) => {
                       {product.discount > 0 ? (
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-bold">
-                            ${(product.price * (1 - product.discount / 100)).toFixed(2)}
+                            {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(
+                              product.price * (1 - product.discount / 100)
+                            )}
                           </span>
                           <span className="text-sm text-muted-foreground line-through">
-                            ${product.price.toFixed(2)}
+                            {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(
+                              product.price
+                            )}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
+                        <span className="text-lg font-bold">
+                          {new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(
+                            product.price
+                          )}
+                        </span>
                       )}
                       <Badge
                         className={`${
