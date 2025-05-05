@@ -105,11 +105,10 @@ const AdminLayout = ({ children }) => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                item.active
+              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${item.active
                   ? "bg-primary/10 text-primary dark:bg-primary/20"
                   : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-              }`}
+                }`}
             >
               {item.icon}
               {item.title}
@@ -122,18 +121,21 @@ const AdminLayout = ({ children }) => {
       <div className="flex flex-1 flex-col">
         <header className="sticky top-0 z-10 flex h-16 items-center border-b bg-white px-6 dark:border-gray-800 dark:bg-gray-950">
           <div className="ml-auto flex items-center gap-4">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/">
-                <Home className="mr-2 h-4 w-4" />
-                Home
-              </Link>
-            </Button>
+
             <div className="relative">
               <div className="flex items-center gap-2 rounded-full bg-gray-100 p-1 px-2 dark:bg-gray-800">
                 <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700"></div>
                 <span className="text-sm font-medium">{userName}</span>
               </div>
             </div>
+
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/">
+                <Home className="mr-2 h-4 w-4" />
+                Home
+              </Link>
+            </Button>
+
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Logout

@@ -5,13 +5,13 @@ const Category = require('../models/Category');
 // Create a new product
 exports.createProduct = async (req, res) => {
   try {
-    const { name, price, category, shortDescription } = req.body;
+    const { name, price, category, shortDescription, stockCount } = req.body;
 
     // Validate required fields
-    if (!name || !price || !category || !shortDescription) {
+    if (!name || !price || !category || !shortDescription || stockCount === undefined) {
       return res.status(400).json({
         message: 'Missing required fields',
-        required: ['name', 'price', 'category', 'shortDescription']
+        required: ['name', 'price', 'category', 'shortDescription', 'stockCount']
       });
     }
 
@@ -28,6 +28,7 @@ exports.createProduct = async (req, res) => {
       ...productData,
       name,
       price,
+      stockCount: stockCount || 0,
       image: req.body.image || '/placeholder.svg',
       shortDescription,
       description: req.body.description || '',
@@ -94,6 +95,7 @@ exports.updateProduct = async (req, res) => {
       {
         name: req.body.name,
         price: req.body.price,
+        stockCount: req.body.stockCount,
         image: req.body.image || '/placeholder.svg',
         shortDescription: req.body.shortDescription,
         description: req.body.description || '',

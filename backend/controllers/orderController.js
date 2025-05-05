@@ -2,6 +2,7 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
+const mongoose = require('mongoose');
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -57,35 +58,67 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ message: 'No items in cart' });
     }
 
-    // Create order with explicit customerName and pending status
-    const order = new Order({
-      user: req.user._id,
-      customerName: customerName.trim(), // Ensure customerName is trimmed
-      items,
-      shippingAddress,
-      paymentMethod,
-      itemsPrice,
-      taxPrice,
-      shippingPrice,
-      totalPrice,
-      status: 'pending' // Always set to pending for new orders
-    });
+    // Start a session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Log the order object before saving
-    console.log('Creating order with data:', {
-      customerName: order.customerName,
-      itemsCount: order.items.length,
-      shippingAddress: order.shippingAddress,
-      paymentMethod: order.paymentMethod
-    });
+    try {
+      // Verify stock availability and update stock counts
+      for (const item of items) {
+        const product = await Product.findById(item.product).session(session);
+        if (!product) {
+          await session.abortTransaction();
+          return res.status(404).json({ message: `Product not found: ${item.product}` });
+        }
 
-    const createdOrder = await order.save();
+        // Check if enough stock is available
+        if (product.stockCount < item.quantity) {
+          await session.abortTransaction();
+          return res.status(400).json({ 
+            message: `Not enough stock available for ${product.name}`,
+            product: product.name,
+            available: product.stockCount,
+            requested: item.quantity
+          });
+        }
 
-    // Clear cart
-    cart.items = [];
-    await cart.save();
+        // Update stock count
+        product.stockCount -= item.quantity;
+        await product.save({ session });
+      }
 
-    res.status(201).json(createdOrder);
+      // Create order
+      const order = new Order({
+        user: req.user._id,
+        customerName: customerName.trim(),
+        items,
+        shippingAddress,
+        paymentMethod,
+        itemsPrice,
+        taxPrice,
+        shippingPrice,
+        totalPrice,
+        status: 'pending'
+      });
+
+      // Save order
+      const createdOrder = await order.save({ session });
+
+      // Clear cart
+      cart.items = [];
+      await cart.save({ session });
+
+      // Commit transaction
+      await session.commitTransaction();
+
+      res.status(201).json(createdOrder);
+    } catch (error) {
+      // If any error occurs, abort the transaction
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   } catch (error) {
     console.error('Create order error:', error);
     // Log the full error details in development

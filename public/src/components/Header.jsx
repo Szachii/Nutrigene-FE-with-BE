@@ -20,10 +20,10 @@ import { useCart } from "@/contexts/CartContext"
 const Header = ({ toggleTheme, isDarkMode }) => {
   const location = useLocation()
   const { user, logout, isAuthenticated } = useAuth()
-  const { cart } = useCart()
+  const { cart, getCartItemsCount } = useCart()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
-  const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0)
+  const cartItemCount = getCartItemsCount()
 
   const navItems = [
     { label: "Home", path: "/" },

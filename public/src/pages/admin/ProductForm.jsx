@@ -26,6 +26,7 @@ const ProductForm = () => {
     id: "",
     name: "",
     price: "",
+    stockCount: "0",
     image: "",
     shortDescription: "",
     description: "",
@@ -116,6 +117,7 @@ const ProductForm = () => {
           id: "",
           name: "",
           price: "",
+          stockCount: "0",
           image: "/placeholder.svg",
           shortDescription: "",
           description: "",
@@ -169,6 +171,12 @@ const ProductForm = () => {
       newErrors.price = "Price must be a positive number"
     }
 
+    if (!formData.stockCount.trim()) {
+      newErrors.stockCount = "Stock count is required"
+    } else if (isNaN(Number.parseInt(formData.stockCount)) || Number.parseInt(formData.stockCount) < 0) {
+      newErrors.stockCount = "Stock count must be a non-negative number"
+    }
+
     if (!formData.shortDescription.trim()) {
       newErrors.shortDescription = "Short description is required"
     }
@@ -206,6 +214,7 @@ const ProductForm = () => {
         const productData = {
           ...formData,
           price: Number.parseFloat(formData.price),
+          stockCount: Number.parseInt(formData.stockCount),
           discount: Number.parseInt(formData.discount) || 0,
           ingredients: formData.ingredients
             .split(",")
@@ -356,6 +365,20 @@ const ProductForm = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="stockCount">Stock Count</Label>
+                <Input
+                  id="stockCount"
+                  name="stockCount"
+                  type="number"
+                  value={formData.stockCount}
+                  onChange={handleInputChange}
+                  className={errors.stockCount ? "border-destructive" : ""}
+                  min="0"
+                />
+                {errors.stockCount && <p className="text-sm text-destructive">{errors.stockCount}</p>}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="discount">Discount (%)</Label>
                 <Input
                   id="discount"
@@ -368,103 +391,101 @@ const ProductForm = () => {
                   onChange={handleInputChange}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="expiryDate">Expiry Date</Label>
-              <Input
-                id="expiryDate"
-                name="expiryDate"
-                type="date"
-                value={formData.expiryDate}
-                onChange={handleInputChange}
-                min={new Date().toISOString().split('T')[0]}
-                className={errors.expiryDate ? "border-destructive" : ""}
-              />
-              {errors.expiryDate && <p className="text-sm text-destructive">{errors.expiryDate}</p>}
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="expiryDate">Expiry Date</Label>
+                <Input
+                  id="expiryDate"
+                  name="expiryDate"
+                  type="date"
+                  value={formData.expiryDate}
+                  onChange={handleInputChange}
+                  min={new Date().toISOString().split('T')[0]}
+                  className={errors.expiryDate ? "border-destructive" : ""}
+                />
+                {errors.expiryDate && <p className="text-sm text-destructive">{errors.expiryDate}</p>}
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select
-                name="category"
-                value={formData.category}
-                onValueChange={(value) => handleInputChange({ target: { name: "category", value } })}
-              >
-                <SelectTrigger className={errors.category ? "border-destructive" : ""}>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.name}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.category && <p className="text-sm text-destructive">{errors.category}</p>}
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  name="category"
+                  value={formData.category}
+                  onValueChange={(value) => handleInputChange({ target: { name: "category", value } })}
+                >
+                  <SelectTrigger className={errors.category ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.category && <p className="text-sm text-destructive">{errors.category}</p>}
+              </div>
 
-            
+              <div className="space-y-2">
+                <Label>Demand Level</Label>
+                <RadioGroup
+                  name="demand"
+                  value={formData.demand}
+                  onValueChange={(value) => handleInputChange({ target: { name: "demand", value } })}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="high" id="high" />
+                    <Label htmlFor="high">High</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="medium" id="medium" />
+                    <Label htmlFor="medium">Medium</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="low" id="low" />
+                    <Label htmlFor="low">Low</Label>
+                  </div>
+                </RadioGroup>
+              </div>
 
-            <div className="space-y-2">
-              <Label>Demand Level</Label>
-              <RadioGroup
-                name="demand"
-                value={formData.demand}
-                onValueChange={(value) => handleInputChange({ target: { name: "demand", value } })}
-                className="flex gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="high" id="high" />
-                  <Label htmlFor="high">High</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="medium" id="medium" />
-                  <Label htmlFor="medium">Medium</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="low" id="low" />
-                  <Label htmlFor="low">Low</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Product Status</Label>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="featured"
-                    name="featured"
-                    checked={formData.featured}
-                    onCheckedChange={(checked) =>
-                      handleInputChange({ target: { name: "featured", type: "checkbox", checked } })
-                    }
-                  />
-                  <Label htmlFor="featured">Featured</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isNew"
-                    name="isNew"
-                    checked={formData.isNew}
-                    onCheckedChange={(checked) =>
-                      handleInputChange({ target: { name: "isNew", type: "checkbox", checked } })
-                    }
-                  />
-                  <Label htmlFor="isNew">New</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isLimited"
-                    name="isLimited"
-                    checked={formData.isLimited}
-                    onCheckedChange={(checked) =>
-                      handleInputChange({ target: { name: "isLimited", type: "checkbox", checked } })
-                    }
-                  />
-                  <Label htmlFor="isLimited">Limited Edition</Label>
+              <div className="space-y-2">
+                <Label>Product Status</Label>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="featured"
+                      name="featured"
+                      checked={formData.featured}
+                      onCheckedChange={(checked) =>
+                        handleInputChange({ target: { name: "featured", type: "checkbox", checked } })
+                      }
+                    />
+                    <Label htmlFor="featured">Featured</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isNew"
+                      name="isNew"
+                      checked={formData.isNew}
+                      onCheckedChange={(checked) =>
+                        handleInputChange({ target: { name: "isNew", type: "checkbox", checked } })
+                      }
+                    />
+                    <Label htmlFor="isNew">New</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isLimited"
+                      name="isLimited"
+                      checked={formData.isLimited}
+                      onCheckedChange={(checked) =>
+                        handleInputChange({ target: { name: "isLimited", type: "checkbox", checked } })
+                      }
+                    />
+                    <Label htmlFor="isLimited">Limited Edition</Label>
+                  </div>
                 </div>
               </div>
             </div>

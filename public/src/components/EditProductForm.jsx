@@ -15,7 +15,8 @@ const EditProductForm = ({ product, isOpen, onClose, onSave }) => {
     price: "",
     category: "",
     countInStock: "",
-    image: ""
+    image: "",
+    discount: "0"
   });
 
   useEffect(() => {
@@ -26,7 +27,8 @@ const EditProductForm = ({ product, isOpen, onClose, onSave }) => {
         price: product.price || "",
         category: product.category || "",
         countInStock: product.countInStock || "",
-        image: product.image || ""
+        image: product.image || "",
+        discount: product.discount || "0"
       });
     }
   }, [product, isOpen]);
@@ -99,6 +101,19 @@ const EditProductForm = ({ product, isOpen, onClose, onSave }) => {
               value={formData.price}
               onChange={handleChange}
               placeholder="Enter price"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="discount">Discount (%)</Label>
+            <Input
+              id="discount"
+              name="discount"
+              type="number"
+              min="0"
+              max="100"
+              value={formData.discount}
+              onChange={handleChange}
+              placeholder="Enter discount percentage"
             />
           </div>
           <div className="space-y-2">
