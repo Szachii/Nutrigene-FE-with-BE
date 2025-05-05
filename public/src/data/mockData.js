@@ -1,92 +1,106 @@
 const API_URL = 'http://localhost:5000/api';
 
+// Mock products data for testing
+const mockProducts = [
+  {
+    _id: "1",
+    name: "Chocolate Chip Cookie",
+    price: 1200,
+    image: "/Logo.jpg",
+    shortDescription: "Classic chocolate chip cookie",
+    description: "Delicious chocolate chip cookie made with premium ingredients",
+    category: "Cookies",
+    featured: true,
+    season: "All",
+    stockCount: 50
+  },
+  {
+    _id: "2",
+    name: "Oatmeal Raisin Cookie",
+    price: 1000,
+    image: "/Logo.jpg",
+    shortDescription: "Healthy oatmeal raisin cookie",
+    description: "Nutritious oatmeal raisin cookie perfect for a healthy snack",
+    category: "Cookies",
+    featured: true,
+    season: "All",
+    stockCount: 45
+  }
+];
+
 // Mock orders data for testing
 const mockOrders = [
   {
-    id: "ORD001",
-    date: "2024-03-15T10:30:00Z",
-    customer: {
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "0771234567"
-    },
+    _id: "ORD001",
+    createdAt: "2024-03-15T10:30:00Z",
+    customerName: "John Doe",
+    email: "john@example.com",
+    phone: "0771234567",
     items: [
       {
-        name: "Chocolate Cake",
-        price: 1200,
-        quantity: 2,
-        image: "/images/cake1.jpg"
-      },
-      {
-        name: "Cupcake Set",
-        price: 800,
-        quantity: 1,
-        image: "/images/cupcake1.jpg"
+        product: {
+          _id: "1",
+          name: "Chocolate Chip Cookie",
+          price: 1200,
+          image: "/Logo.jpg"
+        },
+        quantity: 2
       }
     ],
-    total: 3200,
+    totalPrice: 2400,
     status: "Processing",
-    shipping: {
-      address: "123 Main St, Colombo",
-      method: "Standard Delivery"
+    shippingAddress: {
+      address: "123 Main St",
+      city: "Colombo",
+      postalCode: "00100",
+      country: "Sri Lanka"
     },
-    payment: {
-      method: "Credit Card",
-      last4: "4242"
-    }
-  },
-  {
-    id: "ORD002",
-    date: "2024-03-14T15:45:00Z",
-    customer: {
-      name: "Jane Smith",
-      email: "jane@example.com",
-      phone: "0777654321"
-    },
-    items: [
-      {
-        name: "Birthday Cake",
-        price: 2500,
-        quantity: 1,
-        image: "/images/cake2.jpg"
-      }
-    ],
-    total: 2500,
-    status: "Delivered",
-    shipping: {
-      address: "456 Park Ave, Kandy",
-      method: "Express Delivery"
-    },
-    payment: {
-      method: "PayPal",
-      email: "jane@example.com"
-    }
+    paymentMethod: "Credit Card",
+    isPaid: true
   }
 ];
 
 export const getMockProducts = async () => {
-  const response = await fetch(`${API_URL}/products`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch products');
+  try {
+    const response = await fetch(`${API_URL}/products`);
+    if (!response.ok) {
+      console.warn('Using mock data due to API error');
+      return mockProducts;
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return mockProducts;
   }
-  return response.json();
 };
 
 export const getMockProductById = async (id) => {
-  const response = await fetch(`${API_URL}/products/${id}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch product');
+  try {
+    const response = await fetch(`${API_URL}/products/${id}`);
+    if (!response.ok) {
+      console.warn('Using mock data due to API error');
+      return mockProducts.find(product => product._id === id) || null;
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    return mockProducts.find(product => product._id === id) || null;
   }
-  return response.json();
 };
 
 export const getRelatedProducts = async (id, category) => {
-  const response = await fetch(`${API_URL}/products/category/${category}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch related products');
+  try {
+    const response = await fetch(`${API_URL}/products/category/${category}`);
+    if (!response.ok) {
+      console.warn('Using mock data due to API error');
+      return mockProducts.filter(product => product.category === category && product._id !== id);
+    }
+    const products = await response.json();
+    return products.filter(product => product._id !== id);
+  } catch (error) {
+    console.error('Error fetching related products:', error);
+    return mockProducts.filter(product => product.category === category && product._id !== id);
   }
-  const products = await response.json();
-  return products.filter(product => product._id !== id);
 };
 
 export const getMockOrders = async () => {
@@ -104,7 +118,6 @@ export const getMockOrders = async () => {
     });
 
     if (!response.ok) {
-      // If API call fails, return mock data for testing
       console.warn('Using mock data due to API error');
       return mockOrders;
     }
@@ -112,7 +125,6 @@ export const getMockOrders = async () => {
     return response.json();
   } catch (error) {
     console.error('Error fetching orders:', error);
-    // Return mock data if there's an error
     return mockOrders;
   }
 };
@@ -132,15 +144,13 @@ export const getMockOrderById = async (id) => {
     });
 
     if (!response.ok) {
-      // If API call fails, return mock data for testing
       console.warn('Using mock data due to API error');
-      return mockOrders.find(order => order.id === id) || null;
+      return mockOrders.find(order => order._id === id) || null;
     }
 
     return response.json();
   } catch (error) {
     console.error('Error fetching order:', error);
-    // Return mock data if there's an error
-    return mockOrders.find(order => order.id === id) || null;
+    return mockOrders.find(order => order._id === id) || null;
   }
 };

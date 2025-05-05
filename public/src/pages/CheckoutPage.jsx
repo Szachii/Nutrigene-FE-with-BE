@@ -37,7 +37,7 @@ const CheckoutPage = () => {
   const [apiError, setApiError] = useState(null);
 
   // Calculate cart totals
-  const subtotal = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+  const subtotal = cart.items.reduce((total, item) => total + item.product.price * item.quantity, 0);
   const shipping = formData.shippingMethod === "standard" ? 400 : 900;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
@@ -102,7 +102,7 @@ const CheckoutPage = () => {
 
       const orderData = {
         customerName: formattedCustomerName,
-        items: cart.map((item) => ({
+        items: cart.items.map((item) => ({
           product: item.product._id,
           name: item.product.name,
           quantity: item.quantity,
@@ -160,7 +160,7 @@ const CheckoutPage = () => {
     }
   };
 
-  if (cart.length === 0) {
+  if (cart.items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
         <p>You need to add items to your cart before proceeding to checkout.</p>
@@ -234,7 +234,6 @@ const CheckoutPage = () => {
               <Input
                 id="phone"
                 name="phone"
-                type="tel"
                 value={formData.phone}
                 onChange={handleInputChange}
                 className={formErrors.phone ? "border-red-500" : ""}
@@ -377,7 +376,7 @@ const CheckoutPage = () => {
         <div className="md:col-span-1">
           <h3 className="mb-4 text-lg font-medium">Order Summary</h3>
           <div className="rounded-lg border p-4">
-            {cart.map((item) => (
+            {cart.items.map((item) => (
               <div key={item.product._id} className="flex justify-between mb-2">
                 <span>
                   {item.product.name} × {item.quantity}

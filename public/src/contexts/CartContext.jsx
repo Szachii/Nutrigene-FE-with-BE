@@ -1,143 +1,219 @@
 // src/contexts/CartContext.jsx
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useAuth } from "./AuthContext";
 
 const CartContext = createContext();
 
-export const useCart = () => useContext(CartContext);
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
+};
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState({ items: [] });
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user, isAuthenticated } = useAuth();
 
-  // API base URL
-  const API_BASE_URL = 'http://localhost:5000/api';
+  const API_URL = "http://localhost:5000/api";
 
-  // Helper function to get auth token (assumes token is stored in localStorage)
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
+  // Fetch cart when user changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchCart();
+    } else {
+      setCart({ items: [] });
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  const fetchCart = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_URL}/cart`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.status === 401) {
+        setCart({ items: [] });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch cart');
+      }
+
+      const data = await response.json();
+      setCart(data);
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+      setError(error.message);
+      setCart({ items: [] });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Fetch cart from backend on mount
-  useEffect(() => {
-    const fetchCart = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/cart`, {
-          headers: getAuthHeaders(),
-        });
-        if (!response.ok) throw new Error("Failed to fetch cart");
-        const data = await response.json();
-        setCart(data.items || []);
-        setError(null);
-      } catch (err) {
-        setError("Could not load cart. Please try again.");
-        setCart([]);
-      }
-    };
-    fetchCart();
-  }, []);
-
-  const addToCart = async (product, quantity = 1) => {
+  const addToCart = async (productId, quantity = 1) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/cart/add`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({ productId: product._id, quantity }),
-      });
-      if (!response.ok) throw new Error("Failed to add item to cart");
-      const data = await response.json();
-      setCart(data.items || []);
       setError(null);
-    } catch (err) {
-      setError("Could not add item to cart. Please try again.");
-      throw err;
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_URL}/cart/add`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ productId, quantity })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to add item to cart');
+      }
+
+      const updatedCart = await response.json();
+      setCart(updatedCart);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      setError(error.message);
+      throw error;
+    }
+  };
+
+  const updateCartItem = async (productId, quantity) => {
+    try {
+      setError(null);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_URL}/cart/update`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ productId, quantity })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update cart item');
+      }
+
+      const updatedCart = await response.json();
+      setCart(updatedCart);
+    } catch (error) {
+      console.error('Error updating cart item:', error);
+      setError(error.message);
+      throw error;
     }
   };
 
   const removeFromCart = async (productId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/cart/remove`, {
-        method: "DELETE",
+      setError(null);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_URL}/cart/remove`, {
+        method: 'DELETE',
         headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ productId }),
+        body: JSON.stringify({ productId })
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to remove item from cart");
+        throw new Error(errorData.message || 'Failed to remove item from cart');
       }
 
-      const data = await response.json();
-      setCart(data.items || []);
-      setError(null);
-    } catch (err) {
-      console.error("Error removing from cart:", err);
-      setError(err.message || "Could not remove item from cart. Please try again.");
-    }
-  };
-
-  const updateQuantity = async (productId, quantity) => {
-    try {
-      // Validate productId before making the request
-      if (!productId || typeof productId !== 'string') {
-        throw new Error('Invalid product ID');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/cart/update`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({ productId, quantity }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update cart quantity");
-      }
-
-      const data = await response.json();
-      setCart(data.items || []);
-      setError(null);
-    } catch (err) {
-      console.error("Error updating cart quantity:", err);
-      setError(err.message || "Could not update cart quantity. Please try again.");
+      const updatedCart = await response.json();
+      setCart(updatedCart);
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+      setError(error.message);
+      throw error;
     }
   };
 
   const clearCart = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/cart/clear`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok) throw new Error("Failed to clear cart");
-      setCart([]);
       setError(null);
-    } catch (err) {
-      setError("Could not clear cart. Please try again.");
-      throw err;
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_URL}/cart/clear`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to clear cart');
+      }
+
+      setCart({ items: [] });
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      setError(error.message);
+      throw error;
     }
   };
 
+  const getCartTotal = () => {
+    return cart.items.reduce((total, item) => {
+      const price = item.product.discount > 0
+        ? item.product.price * (1 - item.product.discount / 100)
+        : item.product.price;
+      return total + (price * item.quantity);
+    }, 0);
+  };
+
+  const getCartItemsCount = () => {
+    return cart.items.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  const value = {
+    cart,
+    loading,
+    error,
+    addToCart,
+    updateCartItem,
+    removeFromCart,
+    clearCart,
+    getCartTotal,
+    getCartItemsCount,
+    fetchCart
+  };
+
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        error,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-      }}
-    >
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   );

@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const { errorHandler } = require('./middleware/errorMiddleware');
 const connectDB = require('./config/db');
+const productRoutes = require('./routes/productRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -14,7 +15,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -24,7 +25,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Routes
 app.use('/api/categories', require('./routes/categoryRoutes'));
-app.use('/api/products', require('./routes/products'));
+app.use('/api/products', productRoutes);
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/users/admins', require('./routes/adminRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
