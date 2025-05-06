@@ -180,7 +180,13 @@ const ProductsPage = () => {
             <TableRow>
               <TableHead className="w-[80px]">
                 <Button variant="ghost" className="p-0 font-medium" onClick={() => handleSort("id")}>
-                  ID
+                  Manual ID
+                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+              </TableHead>
+              <TableHead className="w-[200px]">
+                <Button variant="ghost" className="p-0 font-medium" onClick={() => handleSort("_id")}>
+                  MongoDB ID
                   <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
@@ -205,7 +211,8 @@ const ProductsPage = () => {
             {filteredProducts.length > 0 ? (
               filteredProducts.map((product) => (
                 <TableRow key={product._id}>
-                  <TableCell className="font-medium">{product._id}</TableCell>
+                  <TableCell className="font-medium">{product.id || 'N/A'}</TableCell>
+                  <TableCell className="font-mono text-xs">{product._id}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-md bg-muted">
@@ -257,7 +264,7 @@ const ProductsPage = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   <div className="flex flex-col items-center justify-center">
                     <Package className="h-8 w-8 text-muted-foreground" />
                     <p className="mt-2">No products found</p>

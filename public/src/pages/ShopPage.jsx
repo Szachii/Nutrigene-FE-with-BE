@@ -345,6 +345,9 @@ const ShopPage = () => {
                       <span className="font-bold">{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(product.price)}</span>
                     )}
                   </div>
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Stock: {product.stockCount} units
+                  </div>
                 </div>
               </a>
               <div className="border-t p-4">
@@ -354,10 +357,12 @@ const ShopPage = () => {
                     e.preventDefault();
                     handleAddToCart(product);
                   }}
-                  disabled={addingToCart === product._id}
+                  disabled={addingToCart === product._id || product.stockCount === 0}
                 >
                   {addingToCart === product._id ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  ) : product.stockCount === 0 ? (
+                    "Out of Stock"
                   ) : (
                     "Add to Cart"
                   )}
@@ -367,22 +372,8 @@ const ShopPage = () => {
           ))}
         </div>
       ) : (
-        <div className="flex h-[40vh] flex-col items-center justify-center rounded-lg border bg-muted/40 p-8 text-center">
-          <Filter className="mb-4 h-12 w-12 text-muted-foreground" />
-          <h3 className="mb-2 text-xl font-medium">No cookies found</h3>
-          <p className="mb-6 text-muted-foreground">
-            Try adjusting your search or filter criteria to find what you're looking for.
-          </p>
-          <Button
-            onClick={() => {
-              setSelectedCategories([]);
-              setSelectedDemand([]);
-              setSearchTerm("");
-              setSearchParams({});
-            }}
-          >
-            Reset Filters
-          </Button>
+        <div className="text-center py-8">
+          <p className="text-lg text-muted-foreground">No products found matching your criteria.</p>
         </div>
       )}
     </div>

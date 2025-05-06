@@ -14,7 +14,7 @@ const EditProductForm = ({ product, isOpen, onClose, onSave }) => {
     description: "",
     price: "",
     category: "",
-    countInStock: "",
+    stockCount: "",
     image: "",
     discount: "0"
   });
@@ -26,7 +26,7 @@ const EditProductForm = ({ product, isOpen, onClose, onSave }) => {
         description: product.description || "",
         price: product.price || "",
         category: product.category || "",
-        countInStock: product.countInStock || "",
+        stockCount: product.stockCount || "",
         image: product.image || "",
         discount: product.discount || "0"
       });
@@ -51,7 +51,12 @@ const EditProductForm = ({ product, isOpen, onClose, onSave }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          price: parseFloat(formData.price),
+          discount: parseFloat(formData.discount),
+          stockCount: parseInt(formData.stockCount)
+        })
       });
 
       if (!response.ok) {
@@ -64,6 +69,11 @@ const EditProductForm = ({ product, isOpen, onClose, onSave }) => {
       console.error("Error updating product:", error);
     }
   };
+
+  // Calculate discounted price for display
+  const discountedPrice = formData.discount > 0
+    ? formData.price - (formData.price * (formData.discount / 100))
+    : formData.price;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -92,30 +102,52 @@ const EditProductForm = ({ product, isOpen, onClose, onSave }) => {
               placeholder="Enter product description"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="price">Price (LKR)</Label>
-            <Input
-              id="price"
-              name="price"
-              type="number"
-              value={formData.price}
-              onChange={handleChange}
-              placeholder="Enter price"
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="price">Price (LKR)</Label>
+              <Input
+                id="price"
+                name="price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.price}
+                onChange={handleChange}
+                placeholder="Enter price"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="discount">Discount (%)</Label>
+              <Input
+                id="discount"
+                name="discount"
+                type="number"
+                min="0"
+                max="100"
+                value={formData.discount}
+                onChange={handleChange}
+                placeholder="Enter discount"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="discount">Discount (%)</Label>
-            <Input
-              id="discount"
-              name="discount"
-              type="number"
-              min="0"
-              max="100"
-              value={formData.discount}
-              onChange={handleChange}
-              placeholder="Enter discount percentage"
-            />
-          </div>
+          {formData.discount > 0 && (
+            <div className="rounded-md bg-muted p-3">
+              <p className="text-sm font-medium">Discounted Price:</p>
+              <p className="text-lg font-bold text-primary">
+                {new Intl.NumberFormat("en-LK", {
+                  style: "currency",
+                  currency: "LKR",
+                }).format(discountedPrice)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Original Price:{" "}
+                {new Intl.NumberFormat("en-LK", {
+                  style: "currency",
+                  currency: "LKR",
+                }).format(formData.price)}
+              </p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
             <Input
@@ -127,12 +159,13 @@ const EditProductForm = ({ product, isOpen, onClose, onSave }) => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="countInStock">Stock Count</Label>
+            <Label htmlFor="stockCount">Stock Count</Label>
             <Input
-              id="countInStock"
-              name="countInStock"
+              id="stockCount"
+              name="stockCount"
               type="number"
-              value={formData.countInStock}
+              min="0"
+              value={formData.stockCount}
               onChange={handleChange}
               placeholder="Enter stock count"
             />
