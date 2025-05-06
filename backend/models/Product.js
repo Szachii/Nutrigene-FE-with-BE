@@ -114,6 +114,10 @@ const productSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'Expiry date is required'],
   },
+  discountedPrice: {
+    type: Number,
+    min: 0,
+  },
 }, {
   timestamps: true,
   suppressReservedKeysWarning: true,
@@ -122,6 +126,11 @@ const productSchema = new mongoose.Schema({
 productSchema.pre('save', function (next) {
   if (!this._id) {
     this._id = new mongoose.Types.ObjectId();
+  }
+  if (this.discount > 0) {
+    this.discountedPrice = this.price - (this.price * (this.discount / 100));
+  } else {
+    this.discountedPrice = this.price;
   }
   next();
 });

@@ -1,17 +1,18 @@
 // controllers/productController.js
+
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 
 // Create a new product
 exports.createProduct = async (req, res) => {
   try {
-    const { name, price, category, shortDescription, stockCount } = req.body;
+    const { name, price, category, shortDescription, stockCount, id } = req.body;
 
     // Validate required fields
-    if (!name || !price || !category || !shortDescription || stockCount === undefined) {
+    if (!name || !price || !category || !shortDescription || stockCount === undefined || !id) {
       return res.status(400).json({
         message: 'Missing required fields',
-        required: ['name', 'price', 'category', 'shortDescription', 'stockCount']
+        required: ['name', 'price', 'category', 'shortDescription', 'stockCount', 'id']
       });
     }
 
@@ -21,11 +22,12 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: `Category '${category}' does not exist` });
     }
 
-    // Remove any id field from the request body
-    const { id, _id, ...productData } = req.body;
+    // Keep the id field from the request body
+    const { _id, ...productData } = req.body;
 
     const product = await Product.create({
       ...productData,
+      id, // Include the custom id
       name,
       price,
       stockCount: stockCount || 0,
@@ -80,44 +82,37 @@ exports.getProductById = async (req, res) => {
 // Update a product
 exports.updateProduct = async (req, res) => {
   try {
-    const { category } = req.body;
-
-    // Check if category exists
-    if (category) {
-      const categoryExists = await Category.findOne({ name: category });
-      if (!categoryExists) {
-        return res.status(400).json({ message: `Category '${category}' does not exist` });
-      }
+    const { name, description, price, discount, category, image, stockCount } = req.body;
+    
+    // Calculate discounted price if discount is provided
+    let discountedPrice = price;
+    if (discount > 0) {
+      discountedPrice = price - (price * (discount / 100));
     }
 
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       {
-        name: req.body.name,
-        price: req.body.price,
-        stockCount: req.body.stockCount,
-        image: req.body.image || '/placeholder.svg',
-        shortDescription: req.body.shortDescription,
-        description: req.body.description || '',
-        category: req.body.category,
-        demand: req.body.demand || 'medium',
-        featured: req.body.featured || false,
-        isNewProduct: req.body.isNew || false,
-        isLimited: req.body.isLimited || false,
-        ingredients: req.body.ingredients || [],
-        discount: req.body.discount || 0,
-        season: req.body.season || 'none',
-        rating: req.body.rating || 4.5,
-        reviews: req.body.reviews || 0,
+        name,
+        description,
+        price,
+        discount,
+        discountedPrice,
+        category,
+        image,
+        stockCount,
       },
-      { new: true, runValidators: true }
+      { new: true }
     );
+    
     if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({ message: "Product not found" });
     }
+    
     res.json(product);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error("Error updating product:", error);
+    res.status(500).json({ message: "Error updating product" });
   }
 };
 

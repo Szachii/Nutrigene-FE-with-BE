@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { BarChart, DollarSign, Package, ShoppingCart, TrendingUp, TrendingDown, Users, ArrowRight, User, Shield, AlertCircle } from "lucide-react"
+import { BarChart, DollarSign, Package, ShoppingCart, TrendingUp, TrendingDown, Users, ArrowRight, User, Shield, AlertCircle, AlertTriangle } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,10 @@ import { getMockOrders, getMockProducts } from "@/data/mockData"
 import { formatCurrency } from "@/utils/currencyFormatter"
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Pencil, Trash2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react"
 
 const AdminDashboard = () => {
   const [orders, setOrders] = useState([])
@@ -18,6 +22,8 @@ const AdminDashboard = () => {
   const [timeframe, setTimeframe] = useState("today")
   const [userName, setUserName] = useState("")
   const [expiringProducts, setExpiringProducts] = useState([])
+  const [showAddProduct, setShowAddProduct] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,18 +61,18 @@ const AdminDashboard = () => {
         const productsData = await productsResponse.json();
         setProducts(productsData);
 
-        // Check for products expiring within 7 days
+        // Check for products expiring within 30 days
         const currentDate = new Date();
-        const oneWeekFromNow = new Date();
-        oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+        const oneMonthFromNow = new Date();
+        oneMonthFromNow.setDate(oneMonthFromNow.getDate() + 30);
 
         const expiringProducts = productsData.filter(product => {
           const expiryDate = new Date(product.expiryDate);
           const daysUntilExpiry = Math.ceil((expiryDate - currentDate) / (1000 * 60 * 60 * 24));
-          return daysUntilExpiry <= 7 && daysUntilExpiry >= 0;
+          return daysUntilExpiry <= 30 && daysUntilExpiry >= 0;
         });
 
-        console.log('Products expiring within 7 days:', expiringProducts);
+        console.log('Products expiring within 30 days:', expiringProducts);
         setExpiringProducts(expiringProducts);
 
         // Fetch real orders from backend
@@ -298,34 +304,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {expiringProducts && expiringProducts.length > 0 && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Warning: Products Expiring Soon</AlertTitle>
-          <AlertDescription>
-            The following products will expire within a week:
-            <ul className="mt-2 list-disc pl-4">
-              {expiringProducts.map((product) => {
-                const expiryDate = new Date(product.expiryDate);
-                const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
-                return (
-                  <li key={product._id || product.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span>{product.name}</span>
-                      
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      Expires in {daysUntilExpiry} days ({expiryDate.toLocaleDateString()})
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+<div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Overview of your store's performance</p>
@@ -350,6 +329,64 @@ const AdminDashboard = () => {
           </Tabs>
         </div>
       </div>
+
+      {expiringProducts && expiringProducts.length > 0 && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Warning: Products Expiring Soon</AlertTitle>
+          <AlertDescription>
+            The following products will expire within a month:
+            <ul className="mt-2 list-disc pl-4">
+              {expiringProducts.map((product) => {
+                const expiryDate = new Date(product.expiryDate);
+                const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+                return (
+                  <li key={product._id || product.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span>ID: {product.id} - {product.name}</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      Expires in {daysUntilExpiry} days ({expiryDate.toLocaleDateString()})
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Low Stock Warning Section */}
+      {products.filter(p => p.stockCount <= 10).length > 0 && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Low Stock Alert</AlertTitle>
+          <AlertDescription>
+            <div className="mt-2">
+              <p className="mb-2">{products.filter(p => p.stockCount <= 10).length} products have low stock (10 or fewer items):</p>
+              <ul className="mt-2 list-disc pl-4 space-y-1">
+                {products
+                  .filter(p => p.stockCount <= 10)
+                  .sort((a, b) => a.stockCount - b.stockCount) // Sort by stock count ascending
+                  .map((product) => (
+                    <li key={product._id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">ID: {product.id} - {product.name}</span>
+                        
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className={`text-sm font-medium ${product.stockCount === 0 ? 'text-destructive' : 'text-amber-500'}`}>
+                          {product.stockCount} units left
+                        </span>
+                        
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
