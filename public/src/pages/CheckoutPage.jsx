@@ -298,11 +298,11 @@ const CheckoutPage = () => {
           >
             <div className="flex items-center gap-2">
               <RadioGroupItem value="standard" id="standard" />
-              <Label htmlFor="standard">Standard Shipping (₹400)</Label>
+              <Label htmlFor="standard">Standard Shipping (LKR 400)</Label>
             </div>
             <div className="flex items-center gap-2">
               <RadioGroupItem value="express" id="express" />
-              <Label htmlFor="express">Express Shipping (₹900)</Label>
+              <Label htmlFor="express">Express Shipping (LKR 900)</Label>
             </div>
           </RadioGroup>
 
@@ -381,26 +381,26 @@ const CheckoutPage = () => {
                 <span>
                   {item.product.name} × {item.quantity}
                 </span>
-                <span>₹{(item.product.price * item.quantity).toFixed(2)}</span>
+                <span>{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(item.product.price * item.quantity)}</span>
               </div>
             ))}
             <Separator className="my-2" />
             <div className="flex justify-between mb-2">
               <span>Subtotal</span>
-              <span>₹{subtotal.toFixed(2)}</span>
+              <span>{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(subtotal)}</span>
             </div>
             <div className="flex justify-between mb-2">
               <span>Shipping</span>
-              <span>₹{shipping.toFixed(2)}</span>
+              <span>{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(shipping)}</span>
             </div>
             <div className="flex justify-between mb-2">
               <span>Tax</span>
-              <span>₹{tax.toFixed(2)}</span>
+              <span>{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(tax)}</span>
             </div>
             <Separator className="my-2" />
             <div className="flex justify-between font-bold">
               <span>Total</span>
-              <span>₹{total.toFixed(2)}</span>
+              <span>{new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(total)}</span>
             </div>
           </div>
 
