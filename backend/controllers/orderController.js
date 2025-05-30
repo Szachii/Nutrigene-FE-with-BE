@@ -29,7 +29,8 @@ exports.createOrder = async (req, res) => {
       itemsPrice,
       taxPrice,
       shippingPrice,
-      totalPrice
+      totalPrice,
+      userId: req.user._id
     });
 
     // Validate required fields
@@ -115,6 +116,7 @@ exports.createOrder = async (req, res) => {
     } catch (error) {
       // If any error occurs, abort the transaction
       await session.abortTransaction();
+      console.error('Transaction error:', error);
       throw error;
     } finally {
       session.endSession();
