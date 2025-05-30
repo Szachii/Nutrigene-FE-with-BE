@@ -112,7 +112,7 @@ const productSchema = new mongoose.Schema({
   },
   expiryDate: {
     type: Date,
-    required: [true, 'Expiry date is required'],
+    default: null
   },
   discountedPrice: {
     type: Number,

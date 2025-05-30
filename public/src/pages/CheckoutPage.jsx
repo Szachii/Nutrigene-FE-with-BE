@@ -21,10 +21,10 @@ const CheckoutPage = () => {
     email: "",
     phone: "",
     address: "",
-    city: "",
+    district: "",
     state: "",
     zipCode: "",
-    country: "India",
+    country: "Sri Lanka",
     shippingMethod: "standard",
     paymentMethod: "credit",
     cardNumber: "",
@@ -52,7 +52,7 @@ const CheckoutPage = () => {
 
   const validateForm = () => {
     const errors = {};
-    const requiredFields = ["firstName", "lastName", "email", "phone", "address", "city", "state", "zipCode"];
+    const requiredFields = ["firstName", "lastName", "email", "phone", "address", "district", "state", "zipCode"];
     requiredFields.forEach((field) => {
       if (!formData[field]) {
         errors[field] = "This field is required";
@@ -111,9 +111,9 @@ const CheckoutPage = () => {
         })),
         shippingAddress: {
           address: formData.address,
-          city: formData.city,
+          district: formData.district,
           postalCode: formData.zipCode,
-          country: formData.country
+          country: "Sri Lanka"
         },
         paymentMethod: formData.paymentMethod === "credit" ? "credit_card" : "paypal",
         itemsPrice: subtotal,
@@ -126,17 +126,24 @@ const CheckoutPage = () => {
       // Log the form data and order data for debugging
       console.log('Form data:', formData);
       console.log('Order data being sent:', orderData);
+      console.log('Auth token:', localStorage.getItem("token"));
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
 
       const response = await fetch("http://localhost:5000/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(orderData),
       });
 
       const responseData = await response.json();
+      console.log('Server response:', responseData);
 
       if (!response.ok) {
         throw new Error(responseData.message || "Failed to create order");
@@ -148,7 +155,7 @@ const CheckoutPage = () => {
           orderId: responseData._id,
           orderDate: new Date().toISOString(),
           orderTotal: total,
-          shippingAddress: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
+          shippingAddress: `${formData.address}, ${formData.district}, ${formData.state} ${formData.zipCode}`,
           paymentMethod: formData.paymentMethod === "credit" ? "Credit Card" : "PayPal",
           customerName: formattedCustomerName
         },
@@ -253,15 +260,42 @@ const CheckoutPage = () => {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={formData.city}
+                <Label htmlFor="district">District</Label>
+                <select
+                  id="district"
+                  name="district"
+                  value={formData.district}
                   onChange={handleInputChange}
-                  className={formErrors.city ? "border-red-500" : ""}
-                />
-                {formErrors.city && <p className="text-red-500 text-sm">{formErrors.city}</p>}
+                  className={`w-full rounded-md border ${formErrors.district ? "border-red-500" : "border-gray-300"} px-3 py-2`}
+                >
+                  <option value="">Select District</option>
+                  <option value="Colombo">Colombo</option>
+                  <option value="Gampaha">Gampaha</option>
+                  <option value="Kalutara">Kalutara</option>
+                  <option value="Kandy">Kandy</option>
+                  <option value="Matale">Matale</option>
+                  <option value="Nuwara Eliya">Nuwara Eliya</option>
+                  <option value="Galle">Galle</option>
+                  <option value="Matara">Matara</option>
+                  <option value="Hambantota">Hambantota</option>
+                  <option value="Jaffna">Jaffna</option>
+                  <option value="Kilinochchi">Kilinochchi</option>
+                  <option value="Mannar">Mannar</option>
+                  <option value="Vavuniya">Vavuniya</option>
+                  <option value="Mullaitivu">Mullaitivu</option>
+                  <option value="Batticaloa">Batticaloa</option>
+                  <option value="Ampara">Ampara</option>
+                  <option value="Trincomalee">Trincomalee</option>
+                  <option value="Kurunegala">Kurunegala</option>
+                  <option value="Puttalam">Puttalam</option>
+                  <option value="Anuradhapura">Anuradhapura</option>
+                  <option value="Polonnaruwa">Polonnaruwa</option>
+                  <option value="Badulla">Badulla</option>
+                  <option value="Monaragala">Monaragala</option>
+                  <option value="Ratnapura">Ratnapura</option>
+                  <option value="Kegalle">Kegalle</option>
+                </select>
+                {formErrors.district && <p className="text-red-500 text-sm">{formErrors.district}</p>}
               </div>
               <div>
                 <Label htmlFor="state">State</Label>
